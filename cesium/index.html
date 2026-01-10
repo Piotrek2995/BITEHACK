@@ -50,6 +50,60 @@
     #opacityControl {
       margin-top: 8px;
     }
+
+    /* Suwak dat */
+    #dateControl {
+      margin-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.3);
+      padding-top: 8px;
+    }
+
+    #dateSlider {
+      width: 100%;
+      cursor: pointer;
+    }
+
+    #dateLabel {
+      margin-top: 4px;
+      font-weight: 600;
+      color: #ffeb3b;
+    }
+
+    /* Przyciski */
+    button {
+      background: rgba(100, 150, 255, 0.8);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 4px;
+      margin-top: 8px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: rgba(150, 200, 255, 1);
+    }
+
+    button.active {
+      background: rgba(255, 200, 100, 0.9);
+    }
+
+    /* Sekcja sezonowa */
+    #seasonalControl {
+      margin-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.3);
+      padding-top: 8px;
+    }
+
+    #seasonalInfo {
+      font-size: 12px;
+      margin-top: 6px;
+      color: #aaa;
+      display: none;
+    }
   </style>
 </head>
 
@@ -71,14 +125,45 @@
         id="opacitySlider"
       />
     </div>
+
+    <div id="dateControl">
+      Data:
+      <input
+        type="range"
+        min="0"
+        max="0"
+        value="0"
+        id="dateSlider"
+      />
+      <div id="dateLabel"></div>
+    </div>
+
+    <div id="seasonalControl">
+      <button id="dailyBtn" class="active">📅 Dzienne</button>
+      <button id="seasonalBtn">🗺️ Sezonowa</button>
+      <div id="seasonalInfo">
+        ⚪ Biały = pewny śnieg (70%+)<br>
+        🔵 Niebieski = częsty śnieg (30-70%)
+      </div>
+    </div>
   </div>
 
   <!-- CESIUM -->
   <div id="cesiumContainer"></div>
 
   <script>
-    // ============================
-    // 1. Viewer
+    // ============================    // LISTA DOSTĘPNYCH DNI
+    // ============================"
+    const availableDates = [
+      "2023-12-05",
+      "2023-12-18",
+      "2023-12-28",
+      "2024-01-09",
+      "2024-01-29",
+      "2024-02-16"
+    ];
+
+    // ============================"    // 1. Viewer
     // ============================
     const viewer = new Cesium.Viewer("cesiumContainer", {
       terrain: Cesium.Terrain.fromWorldTerrain(),
@@ -109,7 +194,7 @@
     // ============================
     // 4. WARSTWA ŚNIEGU (BINARNA)
     // ============================
-    const snowLayer = viewer.imageryLayers.addImageryProvider(
+    let snowLayer = viewer.imageryLayers.addImageryProvider(
       new Cesium.SingleTileImageryProvider({
         url: "png_daily/snow_2024-01-09.png",
         rectangle: rectangle
@@ -118,6 +203,9 @@
 
     snowLayer.alpha = 0.8;
 
+    let seasonalLayer = null;
+    let isSeasonalMode = false;
+
     // ============================
     // 5. Suwak przezroczystości
     // ============================
@@ -125,7 +213,90 @@
     slider.addEventListener("input", () => {
       snowLayer.alpha = slider.value / 100;
     });
+    // ============================"
+    // 5b. SUWAK DAT (LOGIKA)
+    // ============================"
+    const dateSlider = document.getElementById("dateSlider");
+    const dateLabel = document.getElementById("dateLabel");
 
+    dateSlider.max = availableDates.length - 1;
+
+    function updateSnowLayer(index) {
+      const date = availableDates[index];
+      dateLabel.innerText = date;
+
+      viewer.imageryLayers.remove(snowLayer);
+
+      snowLayer = viewer.imageryLayers.addImageryProvider(
+        new Cesium.SingleTileImageryProvider({
+          url: `png_daily/snow_${date}.png`,
+          rectangle: rectangle
+        })
+      );
+
+      snowLayer.alpha = slider.value / 100;
+    }
+
+    dateSlider.addEventListener("input", () => {
+      updateSnowLayer(dateSlider.value);
+    });
+
+    // Init z pierwszą datą
+    updateSnowLayer(0);
+
+    // ============================
+    // 5c. PRZEŁĄCZANIE MAP
+    // ============================
+    const dailyBtn = document.getElementById("dailyBtn");
+    const seasonalBtn = document.getElementById("seasonalBtn");
+    const dateControl = document.getElementById("dateControl");
+    const seasonalInfo = document.getElementById("seasonalInfo");
+
+    function switchToDaily() {
+      isSeasonalMode = false;
+      if (seasonalLayer) {
+        viewer.imageryLayers.remove(seasonalLayer);
+      }
+      viewer.imageryLayers.add(snowLayer);
+      dateControl.style.display = "block";
+      seasonalInfo.style.display = "none";
+      dailyBtn.classList.add("active");
+      seasonalBtn.classList.remove("active");
+    }
+
+    function switchToSeasonal() {
+      isSeasonalMode = true;
+      if (snowLayer) {
+        viewer.imageryLayers.remove(snowLayer);
+      }
+      if (!seasonalLayer) {
+        seasonalLayer = viewer.imageryLayers.addImageryProvider(
+          new Cesium.SingleTileImageryProvider({
+            url: "png_daily/snow_seasonal_probability.png",
+            rectangle: rectangle
+          })
+        );
+      }
+      seasonalLayer.alpha = slider.value / 100;
+      viewer.imageryLayers.add(seasonalLayer);
+      dateControl.style.display = "none";
+      seasonalInfo.style.display = "block";
+      dailyBtn.classList.remove("active");
+      seasonalBtn.classList.add("active");
+    }
+
+    dailyBtn.addEventListener("click", switchToDaily);
+    seasonalBtn.addEventListener("click", switchToSeasonal);
+
+    // Update przezroczystości dla obu map
+    const oldSliderListener = slider.onchange;
+    slider.addEventListener("input", () => {
+      if (isSeasonalMode && seasonalLayer) {
+        seasonalLayer.alpha = slider.value / 100;
+      } else if (!isSeasonalMode) {
+        snowLayer.alpha = slider.value / 100;
+      }
+    });
     // ============================
     // 6. Wczytaj statystyki (JSON)
     // ============================
