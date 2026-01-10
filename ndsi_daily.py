@@ -13,8 +13,8 @@ RESOLUTION = 20
 MAX_CLOUD = 30
 NDSI_THRESHOLD = 0.4
 
-START_YEAR = 2023
-END_YEAR = 2024
+START_YEAR = 2022
+END_YEAR = 2023
 
 OUT_DIR = "ndsi_daily"
 os.makedirs(OUT_DIR, exist_ok=True)
