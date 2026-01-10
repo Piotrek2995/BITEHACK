@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <title>Skrzyczne – Snow Coverage AI</title>
+
+  <!-- Cesium -->
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.115/Build/Cesium/Cesium.js"></script>
+  <link
+    href="https://cesium.com/downloads/cesiumjs/releases/1.115/Build/Cesium/Widgets/widgets.css"
+    rel="stylesheet"
+  />
+
+  <!-- TOKEN CESIUM -->
+  <script>
+    Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0YzQ3YzY3Yi1hN2FjLTQ4YTAtOGQ4ZS00MjMxYTkwODQ4ZWIiLCJpZCI6Mzc3MDUzLCJpYXQiOjE3NjgwNTAwNDh9.W2CTDMpelUOrC6cogxWq61-rLKrAidsXlKxCJzGcQ0A";
+  </script>
+
+  <style>
+    html, body, #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    /* Panel info */
+    #info {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0, 0, 0, 0.65);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 6px;
+      z-index: 1000;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    #info h3 {
+      margin: 0 0 6px 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* Suwak przezroczystości */
+    #opacityControl {
+      margin-top: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- PANEL INFO -->
+  <div id="info">
+    <h3>❄️ Skrzyczne</h3>
+    Pokrycie śniegiem: <b><span id="snowPercent">...</span></b><br>
+    Okres: <span id="dateRange">...</span>
+
+    <div id="opacityControl">
+      Przezroczystość:
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value="80"
+        id="opacitySlider"
+      />
+    </div>
+  </div>
+
+  <!-- CESIUM -->
+  <div id="cesiumContainer"></div>
+
+  <script>
+    // ============================
+    // 1. Viewer
+    // ============================
+    const viewer = new Cesium.Viewer("cesiumContainer", {
+      terrain: Cesium.Terrain.fromWorldTerrain(),
+      timeline: false,
+      animation: false,
+      baseLayerPicker: true,
+    });
+
+    // ============================
+    // 2. Kamera – Skrzyczne
+    // ============================
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(
+        19.03,   // lon
+        49.69,   // lat
+        2500     // wysokość (m)
+      )
+    });
+
+    // ============================
+    // 3. BBOX (musi się zgadzać z Pythonem)
+    // ============================
+    const rectangle = Cesium.Rectangle.fromDegrees(
+      19.00001667, 49.66669,
+      19.06264,    49.70834
+    );
+
+    // ============================
+    // 4. WARSTWA ŚNIEGU (BINARNA)
+    // ============================
+    const snowLayer = viewer.imageryLayers.addImageryProvider(
+      new Cesium.SingleTileImageryProvider({
+        url: "snow_binary.png",
+        rectangle: rectangle
+      })
+    );
+
+    snowLayer.alpha = 0.8;
+
+    // ============================
+    // 5. Suwak przezroczystości
+    // ============================
+    const slider = document.getElementById("opacitySlider");
+    slider.addEventListener("input", () => {
+      snowLayer.alpha = slider.value / 100;
+    });
+
+    // ============================
+    // 6. Wczytaj statystyki (JSON)
+    // ============================
+    fetch("stats.json")
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById("snowPercent").innerText =
+          data.snow_percent + "%";
+
+        document.getElementById("dateRange").innerText =
+          data.date_range;
+      })
+      .catch(() => {
+        document.getElementById("snowPercent").innerText = "brak danych";
+      });
+  </script>
+
+</body>
+</html>
