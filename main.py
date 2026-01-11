@@ -67,7 +67,7 @@ snow_binary.rio.to_raster(
 )
 
 # --- ZAPIS METADATA (dla Cesium UI) ---
-with open("stats.json", "w") as f:
+with open("cesium/stats.json", "w") as f:
     json.dump(
         {
             "snow_percent": snow_percent,

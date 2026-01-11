@@ -94,14 +94,14 @@
     /* Sekcja sezonowa */
     #seasonalControl {
       margin-top: 12px;
-      border-top: 1px solid rgba(255,255,255,0.3);
+      border-top: 1px solid rgba(255,255,255,0.6);
       padding-top: 8px;
     }
 
     #seasonalInfo {
-      font-size: 12px;
+      font-size: 14px;
       margin-top: 6px;
-      color: #aaa;
+      color: #eee;
       display: none;
     }
 
@@ -142,8 +142,8 @@
   <!-- PANEL INFO -->
   <div id="info">
     <h3>❄️ Skrzyczne</h3>
-    Pokrycie śniegiem: <b><span id="snowPercent">...</span></b><br>
-    Okres: <span id="dateRange">...</span>
+    Pokrycie śniegiem: <b><span id="snowPercent">Ładowanie...</span></b><br>
+    Okres: <span id="dateRange">Ładowanie...</span>
 
     <div id="opacityControl">
       Przezroczystość:
@@ -173,7 +173,7 @@
       <button id="seasonalBtn">🗺️ Sezonowa</button>
       <div id="seasonalInfo">
         ⚪ Biały = pewny śnieg (70%+)<br>
-        🔵 Niebieski = częsty śnieg (30-70%)
+        ⚫ Szary = częsty śnieg (30-70%)
       </div>
     </div>
 
@@ -349,6 +349,7 @@
       easy: Cesium.Color.LIME,
       novice: Cesium.Color.LIME,
       intermediate: Cesium.Color.fromCssColorString("#0b2c73"),
+      "średni": Cesium.Color.fromCssColorString("#0b2c73"),
       advanced: Cesium.Color.CRIMSON,
       expert: Cesium.Color.BLACK
     };
@@ -360,7 +361,8 @@
 
     function styleSlopes(ds) {
       ds.entities.values.forEach((entity) => {
-        const diff = entity.properties?.piste_diff?.getValue?.() || "";
+        const diff = entity.properties?.piste_diff?.getValue?.() || 
+                     entity.properties?.poziom_trudności?.getValue?.() || "";
         const baseColor = getSlopeColor(diff);
         const fillColor = baseColor.withAlpha(0.65);
         const lineColor = baseColor.withAlpha(0.9);
@@ -418,7 +420,10 @@
     // 7. Wczytaj statystyki (JSON)
     // ============================
     fetch("stats.json")
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) throw new Error("HTTP error " + response.status);
+        return response.json();
+      })
       .then(data => {
         document.getElementById("snowPercent").innerText =
           data.snow_percent + "%";
@@ -426,8 +431,10 @@
         document.getElementById("dateRange").innerText =
           data.date_range;
       })
-      .catch(() => {
-        document.getElementById("snowPercent").innerText = "brak danych";
+      .catch((err) => {
+        console.error("Stats.json error:", err);
+        document.getElementById("snowPercent").innerText = "Błąd ładowania";
+        document.getElementById("dateRange").innerText = "Błąd ładowania";
       });
   </script>
 
