@@ -218,9 +218,14 @@
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(
         19.03,   // lon
-        49.69,   // lat
-        2500     // wysokość (m)
-      )
+        49.75,   // lat (na północy - patrzymy na stok od przodu)
+        3500     // wysokość (m)
+      ),
+      orientation: {
+        heading: Cesium.Math.toRadians(180),  // kierunek na południe (patrzymy na stok)
+        pitch: Cesium.Math.toRadians(-25),    // kąt nachylenia
+        roll: 0
+      }
     });
 
     // ============================
