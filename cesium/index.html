@@ -112,6 +112,44 @@
       padding-top: 8px;
     }
 
+    /* Predykcja AI */
+    #aiControl {
+      margin-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.3);
+      padding-top: 8px;
+    }
+
+    #aiInfo {
+      font-size: 12px;
+      margin-top: 6px;
+      color: #00ff88;
+      display: none;
+    }
+
+    #aiOpacityControl {
+      margin-top: 6px;
+      display: none;
+    }
+
+    #aiOpacitySlider {
+      width: 100%;
+      cursor: pointer;
+      accent-color: #00ff88;
+    }
+
+    button.ai-btn {
+      background: rgba(0, 200, 100, 0.8);
+    }
+
+    button.ai-btn:hover {
+      background: rgba(0, 255, 130, 1);
+    }
+
+    button.ai-btn.active {
+      background: rgba(0, 255, 100, 0.9);
+      box-shadow: 0 0 10px rgba(0, 255, 100, 0.5);
+    }
+
     #slopesLegend {
       display: flex;
       flex-wrap: wrap;
@@ -184,6 +222,24 @@
         <span><span class="swatch intermediate"></span>średnie</span>
         <span><span class="swatch advanced"></span>trudne</span>
         <span><span class="swatch expert"></span>eksperckie</span>
+      </div>
+    </div>
+
+    <div id="aiControl">
+      <button id="aiBtn" class="ai-btn">🤖 Predykcja AI</button>
+      <div id="aiInfo">
+        🧠 Prognoza jakości śniegu<br>
+        na podstawie modelu ML
+      </div>
+      <div id="aiOpacityControl">
+        Przezroczystość AI:
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value="80"
+          id="aiOpacitySlider"
+        />
       </div>
     </div>
   </div>
@@ -422,7 +478,66 @@
 
     showSlopes();
     // ============================
-    // 7. Wczytaj statystyki (JSON)
+    // 8. Predykcja AI (warstwa quality)
+    // ============================
+    let aiLayer = null;
+    let aiVisible = false;
+    const aiBtn = document.getElementById("aiBtn");
+    const aiInfo = document.getElementById("aiInfo");
+    const aiOpacityControl = document.getElementById("aiOpacityControl");
+    const aiOpacitySlider = document.getElementById("aiOpacitySlider");
+
+    // Osobny BBOX dla warstwy AI (z pliku TIFF)
+    const aiRectangle = Cesium.Rectangle.fromDegrees(
+      18.989836801325573, 49.65870333912431,
+      19.073056029224624, 49.716339654138665
+    );
+
+    function showAiPrediction() {
+      if (!aiLayer) {
+        aiLayer = viewer.imageryLayers.addImageryProvider(
+          new Cesium.SingleTileImageryProvider({
+            url: "snieg_count_szczyrk.png",
+            rectangle: aiRectangle
+          })
+        );
+        aiLayer.alpha = aiOpacitySlider.value / 100;
+      } else {
+        viewer.imageryLayers.add(aiLayer);
+      }
+      aiBtn.classList.add("active");
+      aiInfo.style.display = "block";
+      aiOpacityControl.style.display = "block";
+      aiVisible = true;
+    }
+
+    function hideAiPrediction() {
+      if (aiLayer) {
+        viewer.imageryLayers.remove(aiLayer, false);
+      }
+      aiBtn.classList.remove("active");
+      aiInfo.style.display = "none";
+      aiOpacityControl.style.display = "none";
+      aiVisible = false;
+    }
+
+    aiBtn.addEventListener("click", () => {
+      if (aiVisible) {
+        hideAiPrediction();
+      } else {
+        showAiPrediction();
+      }
+    });
+
+    // Update przezroczystości dla warstwy AI (osobny suwak)
+    aiOpacitySlider.addEventListener("input", () => {
+      if (aiLayer) {
+        aiLayer.alpha = aiOpacitySlider.value / 100;
+      }
+    });
+
+    // ============================
+    // 9. Wczytaj statystyki (JSON)
     // ============================
     fetch("stats.json")
       .then(response => {
