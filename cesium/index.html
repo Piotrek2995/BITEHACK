@@ -104,6 +104,36 @@
       color: #aaa;
       display: none;
     }
+
+    /* Stoki narciarskie */
+    #slopesControl {
+      margin-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.3);
+      padding-top: 8px;
+    }
+
+    #slopesLegend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #ddd;
+    }
+
+    .swatch {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      margin-right: 4px;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+
+    .easy { background: #7cfc00; }
+    .intermediate { background: #0b2c73; }
+    .advanced { background: #e53935; }
+    .expert { background: #111; }
   </style>
 </head>
 
@@ -146,6 +176,16 @@
         🔵 Niebieski = częsty śnieg (30-70%)
       </div>
     </div>
+
+    <div id="slopesControl">
+      <button id="slopesBtn" class="active">⛷️ Stoki</button>
+      <div id="slopesLegend">
+        <span><span class="swatch easy"></span>łatwe</span>
+        <span><span class="swatch intermediate"></span>średnie</span>
+        <span><span class="swatch advanced"></span>trudne</span>
+        <span><span class="swatch expert"></span>eksperckie</span>
+      </div>
+    </div>
   </div>
 
   <!-- CESIUM -->
@@ -184,10 +224,10 @@
     });
 
     // ============================
-    // 3. BBOX (musi się zgadzać z Pythonem)
+    // 3. BBOX (musi się zgadzać z Pythonem) 18,97201
     // ============================
     const rectangle = Cesium.Rectangle.fromDegrees(
-      19.00001667, 49.66669,
+      18.97201, 49.66669,
       19.06264,    49.70834
     );
 
@@ -196,7 +236,7 @@
     // ============================
     let snowLayer = viewer.imageryLayers.addImageryProvider(
       new Cesium.SingleTileImageryProvider({
-        url: "png_daily/snow_2024-01-09.png",
+        url: "png_daily2/snow_2024-01-09.png",
         rectangle: rectangle
       })
     );
@@ -229,7 +269,7 @@
 
       snowLayer = viewer.imageryLayers.addImageryProvider(
         new Cesium.SingleTileImageryProvider({
-          url: `png_daily/snow_${date}.png`,
+          url: `png_daily2/snow_${date}.png`,
           rectangle: rectangle
         })
       );
@@ -251,6 +291,7 @@
     const seasonalBtn = document.getElementById("seasonalBtn");
     const dateControl = document.getElementById("dateControl");
     const seasonalInfo = document.getElementById("seasonalInfo");
+    const slopesBtn = document.getElementById("slopesBtn");
 
     function switchToDaily() {
       isSeasonalMode = false;
@@ -272,7 +313,7 @@
       if (!seasonalLayer) {
         seasonalLayer = viewer.imageryLayers.addImageryProvider(
           new Cesium.SingleTileImageryProvider({
-            url: "png_daily/snow_seasonal_probability.png",
+            url: "png_daily2/snow_seasonal_probability.png",
             rectangle: rectangle
           })
         );
@@ -297,8 +338,84 @@
         snowLayer.alpha = slider.value / 100;
       }
     });
+
     // ============================
-    // 6. Wczytaj statystyki (JSON)
+    // 6. Stoki narciarskie (GeoJSON)
+    // ============================
+    let slopesDataSource = null;
+    let slopesVisible = true;
+
+    const slopeColors = {
+      easy: Cesium.Color.LIME,
+      novice: Cesium.Color.LIME,
+      intermediate: Cesium.Color.fromCssColorString("#0b2c73"),
+      advanced: Cesium.Color.CRIMSON,
+      expert: Cesium.Color.BLACK
+    };
+
+    function getSlopeColor(diff) {
+      const key = (diff || "").toLowerCase();
+      return slopeColors[key] || Cesium.Color.ORANGE;
+    }
+
+    function styleSlopes(ds) {
+      ds.entities.values.forEach((entity) => {
+        const diff = entity.properties?.piste_diff?.getValue?.() || "";
+        const baseColor = getSlopeColor(diff);
+        const fillColor = baseColor.withAlpha(0.65);
+        const lineColor = baseColor.withAlpha(0.9);
+
+        if (entity.polygon) {
+          entity.polygon.material = fillColor;
+          entity.polygon.outline = true;
+          entity.polygon.outlineColor = lineColor;
+        }
+
+        if (entity.polyline) {
+          entity.polyline.material = lineColor;
+          entity.polyline.width = 4;
+        }
+
+        if (!entity.name) {
+          const nameProp = entity.properties?.name?.getValue?.();
+          if (nameProp) entity.name = nameProp;
+        }
+      });
+    }
+
+    async function showSlopes() {
+      if (!slopesDataSource) {
+        slopesDataSource = await Cesium.GeoJsonDataSource.load("trasy_skrzyczne.geojson", {
+          clampToGround: true
+        });
+        styleSlopes(slopesDataSource);
+      }
+      if (!viewer.dataSources.contains(slopesDataSource)) {
+        viewer.dataSources.add(slopesDataSource);
+      }
+      slopesBtn.classList.add("active");
+      slopesVisible = true;
+    }
+
+    function hideSlopes() {
+      if (slopesDataSource) {
+        viewer.dataSources.remove(slopesDataSource, false);
+      }
+      slopesBtn.classList.remove("active");
+      slopesVisible = false;
+    }
+
+    slopesBtn.addEventListener("click", () => {
+      if (slopesVisible) {
+        hideSlopes();
+      } else {
+        showSlopes();
+      }
+    });
+
+    showSlopes();
+    // ============================
+    // 7. Wczytaj statystyki (JSON)
     // ============================
     fetch("stats.json")
       .then(response => response.json())

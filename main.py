@@ -6,7 +6,7 @@ import numpy as np
 import json
 
 # --- Parametry ---
-BBOX = [19.00001667, 49.66669, 19.06264, 49.70834]
+BBOX = [18.97201, 49.66669, 19.06264, 49.70834]
 DATE_RANGE = "2024-01-01/2024-02-28"
 MAX_CLOUD = 10
 

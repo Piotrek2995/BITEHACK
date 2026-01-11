@@ -6,8 +6,8 @@ from collections import defaultdict
 
 NDSI_THRESHOLD = 0.4
 
-IN_DIR = "ndsi_daily"
-OUT_DIR = "png_daily"
+IN_DIR = "ndsi_daily2"
+OUT_DIR = "png_daily2"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # ===============================

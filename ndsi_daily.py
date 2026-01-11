@@ -7,14 +7,14 @@ from datetime import datetime, timedelta
 import os
 
 # ---------------- PARAMETRY ----------------
-BBOX = [19.00001667, 49.66669, 19.06264, 49.70834]
+BBOX = [18.97201, 49.66669, 19.06264, 49.70834]
 EPSG = 32634
 RESOLUTION = 20
 MAX_CLOUD = 30
 NDSI_THRESHOLD = 0.4
 
-START_YEAR = 2022
-END_YEAR = 2023
+START_YEAR = 2023
+END_YEAR = 2024
 
 OUT_DIR = "ndsi_daily"
 os.makedirs(OUT_DIR, exist_ok=True)
