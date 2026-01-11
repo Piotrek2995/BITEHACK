@@ -1,6 +1,6 @@
-# ❄️ Skrzyczne Snow Coverage AI
+# ❄️ Snow Coverage AI
 
-Aplikacja do monitorowania pokrywy śnieżnej na stokach narciarskich Skrzycznego z wykorzystaniem danych satelitarnych Sentinel-2 i wizualizacji 3D w CesiumJS.
+Aplikacja do monitorowania pokrywy śnieżnej na stokach narciarskich z wykorzystaniem danych satelitarnych Sentinel-2 i wizualizacji 3D w CesiumJS.
 
 ## 🎯 Funkcje
 
